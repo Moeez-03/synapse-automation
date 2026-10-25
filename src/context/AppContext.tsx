@@ -58,7 +58,28 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<NavTab>('documents');
+  const [activeTab, setActiveTabState] = useState<NavTab>(() => {
+    const hash = window.location.hash.replace('#', '') as NavTab;
+    const valid: NavTab[] = ['documents', 'inspector', 'review', 'schemas', 'webhooks', 'audit'];
+    return valid.includes(hash) ? hash : 'documents';
+  });
+
+  const setActiveTab = (tab: NavTab) => {
+    setActiveTabState(tab);
+    window.location.hash = tab;
+  };
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as NavTab;
+      const valid: NavTab[] = ['documents', 'inspector', 'review', 'schemas', 'webhooks', 'audit'];
+      if (valid.includes(hash)) {
+        setActiveTabState(hash);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
   const [documents, setDocuments] = useState<DocumentItem[]>(() => {
     const saved = localStorage.getItem('synapse_documents');
     return saved ? JSON.parse(saved) : INITIAL_DOCUMENTS;
